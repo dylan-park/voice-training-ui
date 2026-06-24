@@ -41,14 +41,17 @@ ignored `praat-wasm/vendor/` and `praat-wasm/dist/` paths. See
 
 ## License
 
-All code and content I wrote — `analyze.py`, the React dashboard, the Claude Code skill, and the docs — is licensed under the **MIT License** (see `LICENSE`).
+Voice Garden is licensed under the **GNU Affero General Public License, version
+3 or later** (`AGPL-3.0-or-later`; see `LICENSE`).
 
-Additionally, in jurisdictions where statements of this kind are legal, I dedicate my own code and content to the **public domain** — you may use it under either the MIT License or as public domain. (I offer this because many countries lack a legal framework for public-domain dedication.) This does **not** apply to the third-party assets credited below.
-
-**Note on the analyzer's GPL dependency:** `analyze.py` uses **Praat** (via the **parselmouth** library) at runtime, both of which are **GPLv3**. The source here contains none of their code and is distributed source-only — you install parselmouth separately (via `uv`) — so this code stays MIT / public domain. **However**, if you distribute a *bundled artifact* that ships Praat/parselmouth together with this code (a compiled binary, a packaged app, a Docker image with them baked in, etc.), that combined work is covered by the **GPLv3** and must be licensed accordingly.
+This is explicit because Voice Garden uses **Praat** through
+**praat-parselmouth** for Python analysis and includes a Praat-derived
+WebAssembly build path in `praat-wasm/`. Praat and praat-parselmouth are
+GPLv3-or-later; AGPLv3-or-later is the project's stronger compatible copyleft
+choice so network-hosted versions keep the same source-sharing expectations.
 
 ## Credits & third-party assets
 
 - **Reference voices** — the preview clips in `dashboard-react/public/reference-audio/` and the measured values in `reference.json` are derived from the **VCTK Corpus** (CSTR, University of Edinburgh — Veaux, Yamagishi & MacDonald), licensed **CC BY 4.0**. The clips were trimmed and transcoded. These files remain under **CC BY 4.0**. <https://datashare.ed.ac.uk/handle/10283/3443> · <https://creativecommons.org/licenses/by/4.0/>
-- **Praat** (Boersma & Weenink) and **parselmouth** (Jadoul, Thompson & de Boer), both **GPLv3**, power `analyze.py`.
+- **Praat** (Boersma & Weenink) and **praat-parselmouth** (Jadoul, Thompson & de Boer), both **GPLv3-or-later**, power the analysis paths.
 - Other dependencies (React, Vite, wavesurfer.js, NumPy, …) retain their own respective licenses.

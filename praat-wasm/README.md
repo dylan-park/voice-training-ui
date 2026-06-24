@@ -38,5 +38,6 @@ npm run smoke:wasm
 npm run smoke:browser
 ```
 
-The generated WASM artifact is ignored at `dist/`. Distributing that artifact
-means distributing a combined GPLv3 work because Praat is GPLv3-or-later.
+The generated WASM artifact is ignored at `dist/`. The project is licensed as
+AGPL-3.0-or-later; this package links Praat's GPLv3-or-later code in that
+artifact, and Voice Garden chooses Affero copyleft for network-hosted use.

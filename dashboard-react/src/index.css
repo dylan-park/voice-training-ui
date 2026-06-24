@@ -1278,6 +1278,27 @@ a.legend-link {
 }
 .record-status {
   color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.record-status.is-busy {
+  color: #7c609d;
+  font-weight: 700;
+}
+.record-spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 2px solid #f6c2dc;
+  border-top-color: #8f75c4;
+  animation: record-spin 0.8s linear infinite;
+}
+@keyframes record-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .record-error {
   color: #b84d71;
@@ -1386,6 +1407,14 @@ a.legend-link {
   font-size: 11px;
   color: var(--ink-soft);
   text-align: center;
+}
+.phrase-detail-empty {
+  border-radius: 12px;
+  background: var(--lav-bg);
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  line-height: 1.55;
+  padding: 16px 18px;
 }
 
 /* ---- insights (agent-authored section) ---- */

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 const praatRoot = resolve(root, "vendor", "praat");
+const emsdkRoot = resolve(root, "vendor", "emsdk");
 const outDir = resolve(root, "dist");
 const wrapper = resolve(root, "native", "praat_voice_garden.cpp");
 const praatLibs = [
@@ -27,7 +28,11 @@ if (!existsSync(praatRoot)) {
 }
 
 const emcc = spawnSync("emcc", ["--version"], { encoding: "utf8" });
-if (emcc.status !== 0) {
+const hasActiveEmscripten = emcc.status === 0;
+const localEnvScript = resolve(emsdkRoot, "emsdk_env.bat");
+const hasLocalEmscripten = process.platform === "win32" && existsSync(localEnvScript);
+
+if (!hasActiveEmscripten && !hasLocalEmscripten) {
   console.error("Missing emcc. Install and activate Emscripten before build:wasm.");
   process.exit(1);
 }
@@ -44,9 +49,7 @@ if (missingLibs.length > 0) {
 await mkdir(outDir, { recursive: true });
 
 const outJs = resolve(outDir, "praat-voice-garden.js");
-const result = spawnSync(
-  "em++",
-  [
+const emArgs = [
     wrapper,
     "-std=c++17",
     "-DUNIX",
@@ -76,9 +79,14 @@ const result = spawnSync(
     "-O2",
     "-o",
     outJs,
-  ],
-  { stdio: "inherit" },
-);
+];
+
+const result = hasActiveEmscripten
+  ? spawnSync("em++", emArgs, { stdio: "inherit" })
+  : spawnSync(`call "${localEnvScript}" >nul && em++ ${emArgs.map(quoteCmdArg).join(" ")}`, {
+      stdio: "inherit",
+      shell: true,
+    });
 
 if (result.status !== 0) {
   process.exit(result.status ?? 1);
@@ -91,3 +99,7 @@ console.log(" ", outJs);
 console.log(" ", resolve(outDir, "praat-voice-garden.wasm"));
 console.log("");
 console.log("Smoke-test it with `npm run smoke:wasm`.");
+
+function quoteCmdArg(arg) {
+  return `"${String(arg).replace(/"/g, '""')}"`;
+}

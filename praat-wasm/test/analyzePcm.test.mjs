@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import test from "node:test";
-import { analyzePcm } from "../src/index.js";
+import { analyzePcm, analyzePcmWithPraat } from "../src/index.js";
 
 function sine({ hz, seconds = 1, sampleRate = 44100, amp = 0.3 }) {
   const samples = new Float32Array(Math.round(seconds * sampleRate));
@@ -46,3 +47,82 @@ test("analyzePcm reports sub-register time", () => {
   assert.ok(result.detail.phrases.length >= 1);
 });
 
+test("analyzePcm segments phrases and summarizes register-position bins", () => {
+  const input = phraseLandingClip();
+  const result = analyzePcm({ ...input, registerFloor: 130 });
+  const { register } = result.recording;
+
+  assert.equal(result.detail.phrases.length, 2);
+  assert.equal(register.n_phrases, 2);
+  assert.equal(register.phrases_landed_pct, 50);
+  assert.equal(result.detail.summary.n_phrases, register.n_phrases);
+  assert.ok(Number.isFinite(register.onset_sub_pct));
+  assert.ok(Number.isFinite(register.mid_sub_pct));
+  assert.ok(Number.isFinite(register.offset_sub_pct));
+  assert.ok(register.offset_sub_pct > register.onset_sub_pct);
+
+  const [landed, dropped] = result.detail.phrases;
+  assert.equal(landed.started_in_register, true);
+  assert.equal(landed.ended_in_register, true);
+  assert.equal(dropped.started_in_register, true);
+  assert.equal(dropped.ended_in_register, false);
+  assert.ok(dropped.sub_register_pct > landed.sub_register_pct);
+});
+
+test(
+  "analyzePcmWithPraat segments phrases and supports phrase diagnostics",
+  { skip: hasPraatDist() ? false : "requires built praat-wasm/dist artifact" },
+  async () => {
+    const input = phraseLandingClip({ sampleRate: 16000 });
+    const result = await analyzePcmWithPraat({ ...input, registerFloor: 130 });
+    const { register } = result.recording;
+
+    assert.equal(result.diagnostics.engine, "praat-wasm");
+    assert.equal(result.diagnostics.unsupportedMetrics.includes("phrases"), false);
+    assert.equal(result.detail.phrases.length, register.n_phrases);
+    assert.equal(register.n_phrases, 2);
+    assert.equal(register.phrases_landed_pct, 50);
+    assert.ok(Number.isFinite(register.onset_sub_pct));
+    assert.ok(Number.isFinite(register.mid_sub_pct));
+    assert.ok(Number.isFinite(register.offset_sub_pct));
+    assert.ok(register.offset_sub_pct > register.onset_sub_pct);
+  },
+);
+
+function phraseLandingClip({ sampleRate = 44100 } = {}) {
+  return concatSegments(
+    [
+      { hz: 180, seconds: 0.5, amp: 0.3 },
+      { seconds: 0.24, amp: 0 },
+      { startHz: 180, endHz: 110, seconds: 0.52, amp: 0.3 },
+    ],
+    sampleRate,
+  );
+}
+
+function concatSegments(segments, sampleRate) {
+  const length = segments.reduce((sum, segment) => sum + Math.round(segment.seconds * sampleRate), 0);
+  const samples = new Float32Array(length);
+  let offset = 0;
+  let phase = 0;
+
+  for (const segment of segments) {
+    const segmentLength = Math.round(segment.seconds * sampleRate);
+    const amp = segment.amp ?? 0.3;
+    const startHz = segment.startHz ?? segment.hz ?? 0;
+    const endHz = segment.endHz ?? startHz;
+    for (let i = 0; i < segmentLength; i += 1) {
+      const fraction = segmentLength > 1 ? i / (segmentLength - 1) : 0;
+      const hz = startHz + (endHz - startHz) * fraction;
+      samples[offset + i] = hz > 0 && amp > 0 ? amp * Math.sin(phase) : 0;
+      phase += hz > 0 ? (2 * Math.PI * hz) / sampleRate : 0;
+    }
+    offset += segmentLength;
+  }
+
+  return { samples, sampleRate };
+}
+
+function hasPraatDist() {
+  return existsSync(new URL("../dist/praat-voice-garden.js", import.meta.url));
+}

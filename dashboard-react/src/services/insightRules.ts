@@ -39,7 +39,7 @@ export function createRuleInsight(
     badges.push("phrase endings");
   }
 
-  if (diagnostics.unsupportedMetrics.length > 0) {
+  if (describeUnsupportedGroups(diagnostics.unsupportedMetrics)) {
     badges.push("some metrics unavailable");
   }
 
@@ -66,10 +66,25 @@ function buildSummary(
   const pitch = recording.pitch.mean_hz == null ? "unknown pitch" : `${Math.round(recording.pitch.mean_hz)} Hz average pitch`;
   const frames = detail.frames.hz.filter((hz) => hz != null).length;
   const issueText = issues.length ? `The main signal is that ${issues[0]}.` : "No urgent rule-based issue stood out from the available pitch metrics.";
-  const missing = unsupported.length
-    ? " Formants, voice quality, and weight are still hidden until the browser Praat wrappers support them."
-    : "";
+  const missingGroups = describeUnsupportedGroups(unsupported);
+  const missing = missingGroups ? ` ${missingGroups} ${missingGroups.includes(",") || missingGroups.includes(" and ") ? "are" : "is"} still hidden until the browser Praat wrappers support ${missingGroups.includes(",") || missingGroups.includes(" and ") ? "them" : "it"}.` : "";
   return `${pitch} across ${frames} voiced frames. ${issueText}${missing}`;
+}
+
+function describeUnsupportedGroups(unsupported: string[]): string {
+  const groups = new Set<string>();
+  if (unsupported.some((metric) => metric.startsWith("formants."))) groups.add("formants");
+  if (unsupported.some((metric) => metric.startsWith("voice_quality."))) groups.add("voice quality");
+  if (unsupported.some((metric) => metric === "phrases")) groups.add("phrase-ending detail");
+  if (unsupported.some((metric) => metric.startsWith("weight.") && metric !== "weight.tilt_db_khz")) groups.add("weight");
+  return formatList([...groups]);
+}
+
+function formatList(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
 function chooseDrill(issue: string): string {

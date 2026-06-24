@@ -2,8 +2,9 @@
 
 This package is the browser-facing boundary for a headless Praat WebAssembly
 build. It contains both a JavaScript fallback analyzer and a Praat-backed WASM
-path for the first proven operation: mono PCM to Praat `Sound`, Praat
-`Sound_to_Pitch`, pitch summary, and pitch frames.
+path for browser-side voice metrics: mono PCM to Praat `Sound`, pitch,
+resonance/formants, voice quality, intensity, phrase/register detail, and
+corrected spectral weight.
 
 ## What works now
 
@@ -11,8 +12,11 @@ path for the first proven operation: mono PCM to Praat `Sound`, Praat
 - Duration, pitch contour, pitch summary, relative intensity, phrase splitting,
   and register detail from the JavaScript fallback.
 - `analyzePcmWithPraat({ samples, sampleRate, label, note, registerFloor })`
-  loads `dist/praat-voice-garden.js`, runs real Praat pitch analysis, and returns
-  the existing Voice Garden `Recording` / `RecordingDetail` shape.
+  loads `dist/praat-voice-garden.js`, runs real Praat analysis, and returns the
+  existing Voice Garden `Recording` / `RecordingDetail` shape.
+- Praat-backed pitch, vowel-gated F1/F2/F3 resonance, HNR clarity, jitter and
+  shimmer steadiness, intensity, phrase segmentation/register landing, and
+  corrected H1*-A3* weight summaries.
 - A Web Worker entrypoint and a small client wrapper. The worker tries Praat WASM
   first and falls back to JavaScript if the WASM artifact is unavailable.
 - Node tests, a synthetic benchmark, and a WASM smoke test.
@@ -23,9 +27,8 @@ path for the first proven operation: mono PCM to Praat `Sound`, Praat
   ignored `vendor/` directories.
 - The current Praat build uses Praat static libraries built from the vendored
   source. It is viable, but not yet size-pruned to the hand-minimal object list.
-- Formants, intensity from Praat, phrase segmentation from Praat, HNR, jitter,
-  shimmer, LTAS, and corrected H1*-A3* return `null` or fallback-only values
-  until real Praat wrappers are wired in.
+- The legacy LTAS tilt secondary weight metric still returns `null`; the
+  corrected H1*-A3* headline weight metric is wired in.
 
 ## Praat/Emscripten path
 

@@ -36,6 +36,12 @@ export interface Intensity {
   max_db: number | null;
 }
 
+export interface Weight {
+  h1a3c_db: number | null;
+  h1a3_db?: number | null;
+  tilt_db_khz?: number | null;
+}
+
 export interface Register {
   floor_hz: number;
   in_register_pct: number | null;
@@ -85,6 +91,7 @@ export interface Recording {
   voice_quality: VoiceQuality;
   intensity: Intensity;
   register: Register;
+  weight?: Weight;
 }
 
 export interface AnalyzeDiagnostics {

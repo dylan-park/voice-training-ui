@@ -125,5 +125,8 @@ export function zoneOf(zones: Zone[], v: number | null | undefined): Zone | null
 }
 
 export function fmt(v: number | null | undefined, unit = ""): string {
-  return v === null || v === undefined ? "—" : v + unit;
+  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+  const abs = Math.abs(v);
+  const decimals = abs === 0 ? 0 : abs < 10 ? 2 : 1;
+  return `${Number(v.toFixed(decimals))}${unit}`;
 }

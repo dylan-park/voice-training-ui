@@ -155,25 +155,31 @@ start with all metrics. First prove:
 - WASM module loads in Node.
 - PCM is copied into WASM correctly.
 - Praat creates a `Sound`.
-- Praat returns a pitch contour.
+- Praat returns pitch, intensity, vowel-gated formants, HNR, jitter/shimmer, and
+  corrected H1*-A3* weight summaries.
+- The WASM adapter derives phrase segmentation and register-position summaries
+  from Praat pitch frames and frame-aligned intensity.
 - Output matches the existing JS contract.
 
-Current status: `npm run smoke:wasm` proves this in Node with a synthetic 180 Hz
-tone. `npm run smoke:browser` verifies that `src/worker.js` can load the module
-as a browser `Worker`, fetch `dist/praat-voice-garden.wasm`, transfer
-`Float32Array` PCM, and return the Voice Garden-shaped result. Vite app workflow
-integration is still required before treating the browser recording UI as
-complete.
+Current status: `npm run smoke:wasm` proves this in Node with both a synthetic
+180 Hz tone and a synthetic vowel-like harmonic signal. The vowel case verifies
+finite F1/F2/F3 resonance and corrected H1*-A3* weight in the shaped Voice
+Garden result. The phrase case verifies phrase segmentation, phrase landing,
+and onset/mid/offset sub-register summaries. `npm run smoke:browser` verifies
+that `src/worker.js` can load the module as a browser `Worker`, fetch
+`dist/praat-voice-garden.wasm`, transfer `Float32Array` PCM, and return the
+Voice Garden-shaped result with phrase detail populated.
 
 ## Parity order
 
-1. duration + pitch contour
-2. pitch summary statistics
-3. intensity summary and phrase segmentation
-4. register/phrasing detail
-5. formants
-6. HNR, jitter, shimmer
-7. LTAS/spectrum and corrected H1*-A3*
+1. duration + pitch contour: done
+2. pitch summary statistics: done
+3. intensity summary: done
+4. register detail: done, including phrase landing and register-position bins
+5. formants: done for vowel-gated F1/F2/F3 summaries
+6. HNR, jitter, shimmer: done
+7. corrected H1*-A3*: done
+8. LTAS tilt secondary metric: pending
 
 ## Deployment constraints
 

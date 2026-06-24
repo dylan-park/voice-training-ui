@@ -25,6 +25,10 @@ export async function analyzePcmWithPraat(input) {
       Number.isFinite(frame.frequency) && frame.frequency > 0 ? clean(frame.frequency) : null,
     ),
   };
+  const intensityFrames = raw.pitch.frames.map((frame, i) => ({
+    t: frames.t[i],
+    db: clean(frame.intensity),
+  }));
   const voicedHz = frames.hz.filter((hz) => hz != null);
   const pitch = {
     mean_hz: clean(raw.pitch.mean),
@@ -34,7 +38,8 @@ export async function analyzePcmWithPraat(input) {
     range_hz: clean(raw.pitch.max - raw.pitch.min),
     sd_hz: clean(raw.pitch.sd),
   };
-  const register = summarizeRegister(frames.hz, registerFloor);
+  const phrases = segmentPhrases(frames, intensityFrames, registerFloor);
+  const register = summarizeRegister(frames, phrases, registerFloor);
   const id = Number.isInteger(input.id) ? Number(input.id) : 0;
   const detailId = id > 0 ? `praat-wasm-analysis-${id}` : "praat-wasm-analysis-pending";
 
@@ -50,10 +55,27 @@ export async function analyzePcmWithPraat(input) {
       detailId,
       duration_s: clean(raw.duration),
       pitch,
-      formants: { f1_hz: null, f2_hz: null, f3_hz: null },
-      voice_quality: { hnr_db: null, jitter_pct: null, shimmer_pct: null },
-      intensity: { mean_db: null, min_db: null, max_db: null },
+      formants: {
+        f1_hz: clean(raw.formants?.f1),
+        f2_hz: clean(raw.formants?.f2),
+        f3_hz: clean(raw.formants?.f3),
+      },
+      voice_quality: {
+        hnr_db: clean(raw.voiceQuality?.hnr),
+        jitter_pct: clean(raw.voiceQuality?.jitter),
+        shimmer_pct: clean(raw.voiceQuality?.shimmer),
+      },
+      intensity: {
+        mean_db: clean(raw.intensity?.mean),
+        min_db: clean(raw.intensity?.min),
+        max_db: clean(raw.intensity?.max),
+      },
       register,
+      weight: {
+        h1a3c_db: clean(raw.weight?.h1a3c),
+        h1a3_db: clean(raw.weight?.h1a3),
+        tilt_db_khz: clean(raw.weight?.tilt),
+      },
     },
     detail: {
       register_floor_hz: registerFloor,
@@ -61,7 +83,7 @@ export async function analyzePcmWithPraat(input) {
       duration_s: clean(raw.duration),
       time_step: estimateTimeStep(frames.t),
       frames,
-      phrases: [],
+      phrases,
       summary: register,
     },
     diagnostics: {
@@ -69,18 +91,6 @@ export async function analyzePcmWithPraat(input) {
       sampleRate,
       samples: samples.length,
       unsupportedMetrics: [
-        "formants.f1_hz",
-        "formants.f2_hz",
-        "formants.f3_hz",
-        "voice_quality.hnr_db",
-        "voice_quality.jitter_pct",
-        "voice_quality.shimmer_pct",
-        "intensity.mean_db",
-        "intensity.min_db",
-        "intensity.max_db",
-        "phrases",
-        "weight.h1a3c_db",
-        "weight.h1a3_db",
         "weight.tilt_db_khz",
       ],
       elapsedMs: clean(performanceNow() - started),
@@ -110,28 +120,110 @@ function validateSampleRate(sampleRate) {
   return sr;
 }
 
-function summarizeRegister(hzFrames, registerFloor) {
-  const voiced = hzFrames.filter((hz) => hz != null);
-  const inRegister = voiced.filter((hz) => hz >= registerFloor);
+function segmentPhrases(frames, intensityFrames, floor) {
+  const peak = Math.max(
+    ...intensityFrames.map((frame) => (frame.db == null ? -Infinity : frame.db)),
+  );
+  if (!Number.isFinite(peak)) return [];
+
+  const threshold = peak - 25;
+  const sounding = intensityFrames.map((frame, i) => ({
+    t: frame.t,
+    sounding: frame.db != null && frame.db >= threshold && frames.hz[i] != null,
+  }));
+  const spans = [];
+  let start = null;
+
+  for (const frame of sounding) {
+    if (frame.sounding && start == null) start = frame.t;
+    if (!frame.sounding && start != null) {
+      spans.push([start, frame.t]);
+      start = null;
+    }
+  }
+  if (start != null && sounding.length) {
+    spans.push([start, sounding[sounding.length - 1].t]);
+  }
+
+  return spans
+    .filter(([a, b]) => b - a >= 0.1)
+    .map(([startTime, endTime]) => buildPhrase(frames, startTime, endTime, floor))
+    .filter(Boolean);
+}
+
+function buildPhrase(frames, startTime, endTime, floor) {
+  const voiced = [];
+  for (let i = 0; i < frames.t.length; i += 1) {
+    const hz = frames.hz[i];
+    const t = frames.t[i];
+    if (hz != null && t >= startTime && t <= endTime) voiced.push({ t, hz });
+  }
+  if (!voiced.length) return null;
+
+  const onset = voiced.filter((point) => point.t - startTime <= 0.08);
+  const offset = voiced.filter((point) => endTime - point.t <= 0.12);
+  const onsetHz = mean((onset.length ? onset : [voiced[0]]).map((point) => point.hz));
+  const offsetHz = mean((offset.length ? offset : [voiced[voiced.length - 1]]).map((point) => point.hz));
+  const hzs = voiced.map((point) => point.hz);
+
+  return {
+    start: round(startTime, 3),
+    end: round(endTime, 3),
+    onset_hz: round(onsetHz, 1),
+    offset_hz: round(offsetHz, 1),
+    min_hz: round(Math.min(...hzs), 1),
+    started_in_register: onsetHz >= floor,
+    ended_in_register: offsetHz >= floor,
+    sub_register_pct: round((100 * hzs.filter((hz) => hz < floor).length) / hzs.length, 1),
+  };
+}
+
+function summarizeRegister(frames, phrases, registerFloor) {
+  const voiced = [];
+  for (let i = 0; i < frames.t.length; i += 1) {
+    const hz = frames.hz[i];
+    if (hz != null) voiced.push({ t: frames.t[i], hz });
+  }
+  const allHz = voiced.map((point) => point.hz);
+  const inRegister = allHz.filter((hz) => hz >= registerFloor);
+  const bins = {
+    onset: [0, 0],
+    mid: [0, 0],
+    offset: [0, 0],
+  };
+
+  for (const phrase of phrases) {
+    const duration = phrase.end - phrase.start || 1e-9;
+    for (const point of voiced) {
+      if (point.t < phrase.start || point.t > phrase.end) continue;
+      const rel = (point.t - phrase.start) / duration;
+      const key = rel < 1 / 3 ? "onset" : rel < 2 / 3 ? "mid" : "offset";
+      bins[key][1] += 1;
+      if (point.hz < registerFloor) bins[key][0] += 1;
+    }
+  }
+
+  const landed = phrases.filter((phrase) => phrase.ended_in_register).length;
 
   return {
     floor_hz: clean(registerFloor),
-    in_register_pct: voiced.length ? clean((inRegister.length / voiced.length) * 100) : null,
-    semitones_sd: semitoneSd(voiced),
+    in_register_pct: allHz.length ? round((100 * inRegister.length) / allHz.length, 1) : null,
+    semitones_sd: semitoneSd(allHz),
     in_register_semitones_sd: semitoneSd(inRegister),
-    onset_sub_pct: null,
-    mid_sub_pct: null,
-    offset_sub_pct: null,
-    phrases_landed_pct: null,
-    n_phrases: 0,
+    onset_sub_pct: pct(bins.onset),
+    mid_sub_pct: pct(bins.mid),
+    offset_sub_pct: pct(bins.offset),
+    phrases_landed_pct: phrases.length ? Math.round((100 * landed) / phrases.length) : null,
+    n_phrases: phrases.length,
   };
 }
 
 function semitoneSd(values) {
   if (values.length < 2) return null;
   const semitones = values.map((hz) => 12 * Math.log2(hz / SEMITONE_REF));
-  const mean = semitones.reduce((sum, value) => sum + value, 0) / semitones.length;
-  const variance = semitones.reduce((sum, value) => sum + (value - mean) ** 2, 0) / semitones.length;
+  const avg = mean(semitones);
+  const variance =
+    semitones.reduce((sum, value) => sum + (value - avg) ** 2, 0) / (semitones.length - 1);
   return clean(Math.sqrt(variance));
 }
 
@@ -140,8 +232,21 @@ function estimateTimeStep(times) {
   return clean(times[1] - times[0]);
 }
 
+function pct(bin) {
+  return bin[1] ? round((100 * bin[0]) / bin[1], 1) : null;
+}
+
+function mean(values) {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 function clean(value) {
   return Number.isFinite(value) ? Number(value.toFixed(6)) : null;
+}
+
+function round(value, places) {
+  const scale = 10 ** places;
+  return Math.round(value * scale) / scale;
 }
 
 function performanceNow() {

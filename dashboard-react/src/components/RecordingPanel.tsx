@@ -214,7 +214,7 @@ export function RecordingPanel({ nextId, onSaved }: RecordingPanelProps) {
       if (analysisCancelledRef.current) {
         throw new Error("Analysis cancelled");
       }
-      setDiagnostic("Running Praat WASM");
+      setDiagnostic("Analyzing with Praat WASM");
       const client = createAnalysisWorkerClient();
       analysisClientRef.current = client;
       const exerciseNote = makeExerciseNote(exerciseCategoryId, exerciseText);
@@ -489,7 +489,12 @@ export function RecordingPanel({ nextId, onSaved }: RecordingPanelProps) {
         )}
       </div>
 
-      {diagnostic && <p className="record-status">{diagnostic}</p>}
+      {diagnostic && (
+        <p className={`record-status${state === "analyzing" ? " is-busy" : ""}`} aria-live="polite">
+          {state === "analyzing" && <span className="record-spinner" aria-hidden="true" />}
+          <span>{diagnostic}</span>
+        </p>
+      )}
       {error && <p className="record-error">{error}</p>}
     </section>
   );

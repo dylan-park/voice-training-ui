@@ -28,11 +28,10 @@ export const PITCH_ZONES: Zone[] = [
 // Resonance (formants F2 & F3) — the brightness / vocal-tract-size cue.
 //
 // MEASURE: vowel-targeted **median** F2/F3 over loud, stable vowel nuclei (not
-// the old all-frames mean) — see `vowel_formants()` in analyze.py.
+// the old all-frames mean) — see the WASM analyzer vowel formant gating.
 //
-// REFERENCE-GROUNDED on **VCTK American speakers** via
-// `scripts/build_reference_set.py` (single consistent corpus, measured with the
-// SAME method): n = 17 female, 4 male.
+// REFERENCE-GROUNDED on **VCTK American speakers** (single consistent corpus,
+// measured with the SAME method): n = 17 female, 4 male.
 //   F2: FEMALE mean 1450 Hz (1280…1646) · MALE mean 1281 Hz (1234…1325)
 //   F3: FEMALE mean 2742 Hz (2403…3049) · MALE mean 2523 Hz (2365…2695)
 //
@@ -41,8 +40,7 @@ export const PITCH_ZONES: Zone[] = [
 // sex's MEAN lands in its zone (female → FEM, male → MASC) with the overlap as
 // the neutral band. Caveats: small male n (4); the user reads the Rainbow
 // Passage while refs read other sentences, so median formants stay somewhat
-// content-dependent — guidance, not law. Re-ground after adding speakers via
-// `build_reference_set.py`.
+// content-dependent — guidance, not law.
 //
 // COLOR RULE (strict): blue MASC = deeper/masculine (LOWER) ONLY; pink FEM =
 // brighter/feminine (HIGHER); butter = the overlap between.
@@ -93,9 +91,9 @@ export const JITTER_ZONES: Zone[] = [
 // LIGHTER (feminine); a LARGER value = flatter source = HEAVIER (masculine). So
 // the FEM band is now the LOW end, MASC the HIGH end.
 //
-// REFERENCE-GROUNDED on **VCTK American** via `build_reference_set.py` (n = 17
-// female, 4 male): FEMALE mean ~9 dB (5…14) · MALE mean ~13 dB (7…16) — ~4 dB
-// apart, female lighter. Direction: lower = lighter/feminine.
+// REFERENCE-GROUNDED on **VCTK American** (n = 17 female, 4 male):
+// FEMALE mean ~9 dB (5…14) · MALE mean ~13 dB (7…16) — ~4 dB apart, female
+// lighter. Direction: lower = lighter/feminine.
 //
 // ⚠️ WEIGHT DOESN'T SCALE WELL AS A GENDER CUE. The male sample is tiny (n=4)
 // and the M/F ranges overlap heavily (plenty of women reach into the "heavy"

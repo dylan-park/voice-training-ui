@@ -100,7 +100,10 @@ export async function analyzePcmWithPraat(input) {
 
 async function loadPraatModule() {
   if (!modulePromise) {
-    const modulePath = "../dist/praat-voice-garden.js";
+    const modulePath =
+      globalThis.location?.origin
+        ? `${globalThis.location.origin}/praat-wasm/praat-voice-garden.js`
+        : "../dist/praat-voice-garden.js";
     modulePromise = import(/* @vite-ignore */ modulePath).then((module) => module.default());
   }
   return modulePromise;

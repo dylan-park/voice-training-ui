@@ -150,7 +150,14 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
-    const file = normalize(resolve(repoRoot, `.${url.pathname}`));
+    const file = normalize(
+      resolve(
+        repoRoot,
+        url.pathname.startsWith("/praat-wasm/praat-voice-garden.")
+          ? `./dashboard-react/public${url.pathname}`
+          : `.${url.pathname}`,
+      ),
+    );
     if (!file.startsWith(repoRoot)) {
       response.writeHead(403);
       response.end("forbidden");

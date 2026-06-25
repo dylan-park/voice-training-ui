@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { FaDice } from "react-icons/fa";
+import { FaDice, FaExternalLinkAlt } from "react-icons/fa";
 import type { Recording } from "../types";
 import { createAnalysisWorkerClient } from "../services/analysisWorkerClient";
 import { createRuleInsight } from "../services/insightRules";
@@ -23,7 +23,6 @@ type RecorderState = "idle" | "recording" | "ready" | "analyzing" | "saved" | "e
 interface ExercisePickerSetting {
   categoryId: ExerciseCategoryId;
   text: string;
-  recentCategoryIds: ExerciseCategoryId[];
 }
 
 interface RecordingPanelProps {
@@ -45,9 +44,6 @@ export function RecordingPanel({ nextId, onSaved }: RecordingPanelProps) {
   const [exerciseText, setExerciseText] = useState(() =>
     pickExercise("daily-check-in"),
   );
-  const [recentExerciseCategoryIds, setRecentExerciseCategoryIds] = useState<
-    ExerciseCategoryId[]
-  >([]);
   const [exerciseSettingsLoaded, setExerciseSettingsLoaded] = useState(false);
   const [registerFloorMode, setRegisterFloorMode] = useState<RegisterFloorMode>("beginner");
   const [registerFloor, setRegisterFloor] = useState(130);
@@ -67,6 +63,9 @@ export function RecordingPanel({ nextId, onSaved }: RecordingPanelProps) {
   const analysisCancelledRef = useRef(false);
 
   const previewUrl = useMemo(() => (blob ? URL.createObjectURL(blob) : null), [blob]);
+  const selectedExerciseCategory =
+    EXERCISE_CATEGORIES.find((category) => category.id === exerciseCategoryId) ??
+    EXERCISE_CATEGORIES[0];
 
   useEffect(() => {
     getSetting<number>("registerFloor").then((saved) => {
@@ -83,7 +82,6 @@ export function RecordingPanel({ nextId, onSaved }: RecordingPanelProps) {
           saved.text.trim() ||
             (saved.categoryId === "custom" ? "" : pickExercise(saved.categoryId)),
         );
-        setRecentExerciseCategoryIds(saved.recentCategoryIds.slice(0, 3));
       })
       .finally(() => setExerciseSettingsLoaded(true));
   }, []);
@@ -93,14 +91,8 @@ export function RecordingPanel({ nextId, onSaved }: RecordingPanelProps) {
     void saveSetting<ExercisePickerSetting>(EXERCISE_PICKER_SETTING_KEY, {
       categoryId: exerciseCategoryId,
       text: exerciseText,
-      recentCategoryIds: recentExerciseCategoryIds,
     });
-  }, [
-    exerciseCategoryId,
-    exerciseSettingsLoaded,
-    exerciseText,
-    recentExerciseCategoryIds,
-  ]);
+  }, [exerciseCategoryId, exerciseSettingsLoaded, exerciseText]);
 
   useEffect(() => {
     setLabel((current) =>
@@ -168,13 +160,6 @@ export function RecordingPanel({ nextId, onSaved }: RecordingPanelProps) {
     setDiagnostic(null);
   }
 
-  function addRecentExerciseCategory(categoryId: ExerciseCategoryId = exerciseCategoryId) {
-    setRecentExerciseCategoryIds((current) => {
-      const deduped = current.filter((item) => item !== categoryId);
-      return [categoryId, ...deduped].slice(0, 3);
-    });
-  }
-
   function selectExerciseCategory(categoryId: ExerciseCategoryId) {
     setExerciseCategoryId(categoryId);
     if (categoryId === "custom") {
@@ -187,15 +172,6 @@ export function RecordingPanel({ nextId, onSaved }: RecordingPanelProps) {
   function rerollExercise() {
     if (exerciseCategoryId === "custom") return;
     setExerciseText(pickExercise(exerciseCategoryId, exerciseText));
-  }
-
-  function restoreExerciseCategory(categoryId: ExerciseCategoryId) {
-    setExerciseCategoryId(categoryId);
-    if (categoryId === "custom") {
-      setExerciseText("");
-      return;
-    }
-    setExerciseText(pickExercise(categoryId, exerciseText));
   }
 
   async function saveTake() {
@@ -250,7 +226,6 @@ export function RecordingPanel({ nextId, onSaved }: RecordingPanelProps) {
       const insight = createRuleInsight(recording, result.detail, result.diagnostics);
       await saveRecordingBundle({ recording, detail: result.detail, audioBlob: blob, insight });
       await saveSetting("registerFloor", registerFloor);
-      addRecentExerciseCategory();
       setState("saved");
       setDiagnostic(`Saved with ${result.diagnostics.engine}`);
       onSaved(recording);
@@ -349,27 +324,21 @@ export function RecordingPanel({ nextId, onSaved }: RecordingPanelProps) {
                   options={EXERCISE_CATEGORIES.map((category) => ({
                     value: category.id,
                     label: category.label,
-                    description:
-                      category.id === "custom"
-                        ? "Write your own prompt"
-                        : "Random prompt pool",
+                    description: category.description,
                   }))}
                   onChange={selectExerciseCategory}
                 />
               </label>
-              {recentExerciseCategoryIds.length > 0 && (
-                <div className="exercise-history" aria-label="Previous exercises">
-                  {recentExerciseCategoryIds.map((categoryId) => (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      key={categoryId}
-                      onClick={() => restoreExerciseCategory(categoryId)}
-                    >
-                      {labelForExerciseCategory(categoryId)}
-                    </button>
-                  ))}
-                </div>
+              {selectedExerciseCategory.resource && (
+                <a
+                  className="exercise-learn-chip"
+                  href={selectedExerciseCategory.resource.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Learn why: {selectedExerciseCategory.resource.label}
+                  <FaExternalLinkAlt aria-hidden="true" />
+                </a>
               )}
             </div>
             {exerciseCategoryId === "custom" ? (
@@ -556,21 +525,12 @@ function makeExerciseNote(categoryId: ExerciseCategoryId, text: string): string 
   return `Exercise: ${category?.label ?? "Custom"} - ${trimmed}`;
 }
 
-function labelForExerciseCategory(categoryId: ExerciseCategoryId): string {
-  return (
-    EXERCISE_CATEGORIES.find((category) => category.id === categoryId)?.label ??
-    "Exercise"
-  );
-}
-
 function isExercisePickerSetting(value: unknown): value is ExercisePickerSetting {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<ExercisePickerSetting>;
   return (
     isExerciseCategoryId(candidate.categoryId) &&
-    typeof candidate.text === "string" &&
-    Array.isArray(candidate.recentCategoryIds) &&
-    candidate.recentCategoryIds.every(isExerciseCategoryId)
+    typeof candidate.text === "string"
   );
 }
 

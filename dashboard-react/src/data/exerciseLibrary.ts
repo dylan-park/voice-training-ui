@@ -17,6 +17,10 @@ export interface ExerciseCategory {
   id: ExerciseCategoryId;
   label: string;
   description: string;
+  resource?: {
+    label: string;
+    url: string;
+  };
 }
 
 export const EXERCISE_CATEGORIES: ExerciseCategory[] = [
@@ -24,46 +28,82 @@ export const EXERCISE_CATEGORIES: ExerciseCategory[] = [
     id: "daily-check-in",
     label: "Daily Check-In",
     description: "Same-style sentences for tracking baseline voice over time.",
+    resource: {
+      label: "Getting Started",
+      url: "https://wiki.sumianvoice.com/wiki/pages/getting-started/",
+    },
   },
   {
     id: "warm-reset",
     label: "Warm Reset",
     description: "Gentle forward resonance and easy onset before harder work.",
+    resource: {
+      label: "Humming",
+      url: "https://wiki.sumianvoice.com/wiki/pages/clarity/breathiness.html#humming",
+    },
   },
   {
     id: "pitch-floor",
     label: "Pitch Floor",
     description: "Sentences that test staying above the selected register floor.",
+    resource: {
+      label: "Pitch Naturalisation",
+      url: "https://wiki.sumianvoice.com/wiki/pages/PIPM/",
+    },
   },
   {
     id: "phrase-endings",
     label: "Phrase Endings",
     description: "Practice landing the last words without dropping too low.",
+    resource: {
+      label: "Base Pitch",
+      url: "https://wiki.sumianvoice.com/wiki/pages/PIPM/basepitch.html",
+    },
   },
   {
     id: "melody-intonation",
     label: "Melody / Intonation",
     description: "Questions, reactions, and contrast for natural pitch movement.",
+    resource: {
+      label: "Speech Patterns",
+      url: "https://wiki.sumianvoice.com/wiki/pages/speech-patterns/",
+    },
   },
   {
     id: "resonance-brightness",
     label: "Resonance / Brightness",
     description: "Light, forward phrases with bright consonants and vowels.",
+    resource: {
+      label: "Resonance",
+      url: "https://wiki.sumianvoice.com/wiki/pages/resonance/",
+    },
   },
   {
     id: "flow-easy-voice",
     label: "Flow / Easy Voice",
     description: "Airflow and low-strain phrases for smoother voicing.",
+    resource: {
+      label: "Clarity",
+      url: "https://wiki.sumianvoice.com/wiki/pages/clarity/",
+    },
   },
   {
     id: "volume-control",
     label: "Volume Control",
     description: "Practice soft, clear, and conversational loudness without pressing.",
+    resource: {
+      label: "Loudness vs vocal weight",
+      url: "https://wiki.sumianvoice.com/wiki/pages/vocal-weight/#loudness-vs-vocal-weight",
+    },
   },
   {
     id: "conversation-carryover",
     label: "Conversation Carryover",
     description: "Everyday phrases that transfer practice into real speech.",
+    resource: {
+      label: "How to Practice",
+      url: "https://wiki.sumianvoice.com/wiki/pages/getting-started/how-to-practice.html",
+    },
   },
   {
     id: "custom",

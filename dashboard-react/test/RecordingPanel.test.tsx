@@ -58,7 +58,18 @@ describe("RecordingPanel", () => {
     );
     await openSelect("Exercise");
     expect(screen.getByRole("option", { name: /Phrase Endings/ })).toBeTruthy();
+    expect(
+      screen.getByRole("option", {
+        name: /Practice landing the last words without dropping too low/,
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByText("Random prompt pool")).toBeNull();
     await chooseOption(/Daily Check-In/);
+    expect(
+      screen.getByRole("link", { name: /Learn why: Getting Started/ }).getAttribute("href"),
+    ).toBe(
+      "https://wiki.sumianvoice.com/wiki/pages/getting-started/",
+    );
     expect(screen.getByRole("button", { name: "Reroll exercise" })).toBeTruthy();
     expect(screen.getByRole("combobox", { name: "Register floor" }).textContent).toContain(
       "Beginner (130 Hz)",
@@ -71,9 +82,17 @@ describe("RecordingPanel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Reroll exercise" }));
 
+    await selectValue("Exercise", /Phrase Endings/);
+    expect(
+      screen.getByRole("link", { name: /Learn why: Base Pitch/ }).getAttribute("href"),
+    ).toBe(
+      "https://wiki.sumianvoice.com/wiki/pages/PIPM/basepitch.html",
+    );
+
     await selectValue("Exercise", /Custom/);
     expect(screen.queryByLabelText("Previous exercises")).toBeNull();
     expect(screen.getByRole("textbox", { name: "Custom exercise text" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Learn why:/ })).toBeNull();
 
     await selectValue("Register floor", /Other \(custom\)/);
     expect((screen.getByRole("spinbutton") as HTMLInputElement).value).toBe("130");
@@ -88,7 +107,7 @@ describe("RecordingPanel", () => {
     }
   });
 
-  it("preserves selected exercise and recent exercise chips across remounts", async () => {
+  it("preserves the selected exercise across remounts", async () => {
     const { unmount } = render(<RecordingPanel nextId={10} onSaved={() => undefined} />);
 
     await selectValue("Exercise", /Phrase Endings/);
@@ -99,7 +118,6 @@ describe("RecordingPanel", () => {
     await waitFor(() =>
       expect(settingsStore.get("exercisePicker")).toMatchObject({
         categoryId: "phrase-endings",
-        recentCategoryIds: [],
       }),
     );
 
@@ -114,7 +132,7 @@ describe("RecordingPanel", () => {
     expect(screen.queryByLabelText("Previous exercises")).toBeNull();
   });
 
-  it("adds recent exercise chips only after a recording is saved", async () => {
+  it("saves without adding last-used exercise chips", async () => {
     analyzeMock.mockResolvedValueOnce(makeAnalyzeResult());
     terminateMock.mockImplementationOnce(() => undefined);
     const { unmount } = render(<RecordingPanel nextId={10} onSaved={() => undefined} />);
@@ -126,19 +144,21 @@ describe("RecordingPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Stop" }));
     await userEvent.click(await screen.findByRole("button", { name: "Save take" }));
     expect(await screen.findByText("Saved with praat-wasm")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Phrase Endings" })).toBeTruthy();
+    expect(screen.queryByLabelText("Previous exercises")).toBeNull();
     await waitFor(() =>
       expect(settingsStore.get("exercisePicker")).toMatchObject({
         categoryId: "phrase-endings",
-        recentCategoryIds: ["phrase-endings"],
       }),
     );
 
     unmount();
     render(<RecordingPanel nextId={11} onSaved={() => undefined} />);
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Phrase Endings" })).toBeTruthy(),
+      expect(screen.getByRole("combobox", { name: "Exercise" }).textContent).toContain(
+        "Phrase Endings",
+      ),
     );
+    expect(screen.queryByLabelText("Previous exercises")).toBeNull();
   });
 
   it("records, reaches ready state, starts analysis, and supports cancellation", async () => {

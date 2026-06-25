@@ -1056,36 +1056,40 @@ a.legend-link {
   border-radius: 14px;
   padding: 10px 12px;
 }
-.exercise-history {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.exercise-learn-chip {
+  align-self: end;
+  justify-self: start;
+  min-height: 38px;
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
-  justify-self: end;
-  min-width: 0;
-  width: 100%;
-  color: var(--ink-soft);
-  font-size: 12px;
-}
-.exercise-history button {
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  justify-content: center;
+  gap: 6px;
   border: 1.5px solid #eadff2;
   border-radius: 999px;
   background: #fff;
-  color: #8a6aa8;
-  cursor: pointer;
+  color: #b06a96;
   font: inherit;
   font-size: 12px;
-  font-weight: 700;
-  padding: 5px 10px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 8px 12px;
+  text-decoration: none;
+  white-space: nowrap;
 }
-.exercise-history button:hover {
+.exercise-learn-chip:hover,
+.exercise-learn-chip:focus-visible {
   border-color: var(--pink);
-  color: #b06a96;
+  background: var(--pink-bg);
+  color: #8a4f78;
+  text-decoration: none;
+}
+.exercise-learn-chip:focus-visible {
+  outline: 2px solid var(--pink-soft);
+  outline-offset: 2px;
+}
+.exercise-learn-chip svg {
+  width: 10px;
+  height: 10px;
 }
 .record-timer {
   min-width: 64px;

@@ -94,7 +94,7 @@ export interface Phrase {
   sub_register_pct: number;
 }
 
-// The heavy per-recording analysis at public/analysis/<id>.json.
+// The heavy per-recording analysis stored in IndexedDB.
 export interface RecordingDetail {
   register_floor_hz: number;
   semitone_ref_hz: number;

@@ -43,11 +43,11 @@ COPY praat-wasm/ ./praat-wasm/
 
 # Replace the pre-built WASM binaries with our freshly built ones
 COPY --from=wasm-builder \
-  /app/praat-wasm/dist/praat-voice-garden.js \
-  /app/dashboard-react/public/praat-wasm/praat-voice-garden.js
+    /app/praat-wasm/dist/praat-voice-garden.js \
+    /app/dashboard-react/public/praat-wasm/praat-voice-garden.js
 COPY --from=wasm-builder \
-  /app/praat-wasm/dist/praat-voice-garden.wasm \
-  /app/dashboard-react/public/praat-wasm/praat-voice-garden.wasm
+    /app/praat-wasm/dist/praat-voice-garden.wasm \
+    /app/dashboard-react/public/praat-wasm/praat-voice-garden.wasm
 
 # Install exact dependencies from lockfile
 RUN cd dashboard-react && npm ci
